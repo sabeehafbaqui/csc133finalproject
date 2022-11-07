@@ -6,6 +6,7 @@ import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.input.KeyCode;
+import javafx.scene.layout.Background;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.*;
@@ -28,6 +29,56 @@ interface Updatable{
 
 class Game extends Pane
 {
+    Helicopter helicopter;
+
+    Pond pond;
+
+    Cloud cloud;
+
+    Helipad helipad;
+
+    //    this.getChildren().add(c);
+      //  this.getChildren().add(xAxis);
+
+    public Game() {
+
+        Helicopter helicopter = new Helicopter();
+        Pond pond = new Pond();
+        Cloud cloud = new Cloud();
+        Helipad helipad = new Helipad();
+
+        this.getChildren().add(pond);
+        this.getChildren().add(cloud);
+        this.getChildren().add(helipad);
+        this.getChildren().add(helicopter);
+
+      // this.setBackground(Background.fill(Color.BLACK));
+
+        Line xAxis = new Line(-125,0,125,0);
+
+        AnimationTimer timer = new AnimationTimer() {	//This runs each frame. Note that if you call update() on a GameObject, it will automatically call it on all children.
+            @Override
+            public void handle(long now) {
+                if(counter++ %2==0) {
+                    //     pond.rotate(fo.getMyRotation() + 1);
+                    pond.update();
+                    helicopter.update();
+                }
+            }
+
+
+        };
+
+        timer.start();
+
+
+    }
+
+    int counter=0;
+
+    public void movement() {
+        helicopter.movement();
+    }
 
 }
 
@@ -100,6 +151,7 @@ class Helicopter extends GameObject{
         currSpeed = 0;
         fuel = 0;
         water = 0;
+
         //  helipadCenterLocation = heliCenter;
         hRadius = size/2;
      //   heliLocation = new Point2D(helipadCenterLocation.getX() - hRadius,
@@ -119,12 +171,37 @@ class Helicopter extends GameObject{
         helicopter.setTranslateX(1);
         helicopter.setTranslateY(100);
         add(helicopter);
+
+        Text fuel = new Text("F:25000");
+        fuel.setScaleY(-1);
+        fuel.setTranslateX(-25);
+        fuel.setTranslateY(-15);
+        fuel.setFill(Color.YELLOW);
+        fuel.setFont(Font.font(25));
+
+        Line line = new Line(0, 10, 0, 30);
+        line.setStroke(Color.YELLOW);
+        add(line);
+        add(fuel);
     }
 
-   /* public void update() {
+    double speedY = 5;
+    double maxSpeed;
 
 
-        if(case KP_DOWN)
+    public void movement()
+    {
+        if(speedY < maxSpeed)
+        {
+            speedY+=0.02;
+        }
+    }
+   public void update() {
+    this.getTransforms().clear();
+    myTranslation.setY(myTranslation.getY() + speedY);
+    this.getTransforms().add(myTranslation);
+
+       /* if(case KP_DOWN)
         {
             Helicopter.down();
         }
@@ -144,9 +221,11 @@ class Helicopter extends GameObject{
             Helicopter.right();
         }
 
+        */
+
     }
 
-    */
+
 
     public void left() {
 
@@ -190,14 +269,14 @@ class Helipad extends GameObject
 {
     public Helipad() {
         Rectangle rectanglePad = new Rectangle(80, 80);
-        rectanglePad.setStroke(Color.BLACK);
-        rectanglePad.setTranslateX(30);
-        rectanglePad.setTranslateY(30);
+        rectanglePad.setStroke(Color.GRAY);
+        rectanglePad.setTranslateX(10);
+        rectanglePad.setTranslateY(10);
 
         Circle circlePad = new Circle(30);
         circlePad.setCenterX(rectanglePad.getWidth() / 2);
         circlePad.setCenterY(rectanglePad.getHeight() / 2);
-        circlePad.setStroke(Color.BLACK);
+        circlePad.setStroke(Color.GRAY);
 
         this.translate(-40, -40);
         this.getTransforms().clear();
@@ -288,22 +367,33 @@ class GameText extends GameObject {
 class Pond extends GameObject {
     public Pond() {
 
-        Circle pond = new Circle(10);
+        Circle pond = new Circle(30);
         pond.setFill(Color.BLUE);
+        pond.setTranslateX(15);
+        pond.setTranslateY(25);
+
+        Text pondPercent = new Text("0%");
+        pondPercent.setScaleY(-1);
+        pondPercent.setTranslateX(100);
+        pondPercent.setTranslateY(100);
+        pondPercent.setFill(Color.BLACK);
+        pondPercent.setFont(Font.font(10));
 
         this.translate(100, 100);
         this.getTransforms().clear();
         this.getTransforms().add(myTranslation);
 
-        Helicopter myHelicopter = new Helicopter();
-        myHelicopter.setScaleX(2.5);
-        myHelicopter.setScaleY(1.5);
+      //  Helicopter myHelicopter = new Helicopter();
+       // myHelicopter.setScaleX(2.5);
+        //myHelicopter.setScaleY(1.5);
 
         add(makeSeed(0,40,0.25,1,0));
         add(makeSeed(0,40,0.25,1,-90));
         add(makeSeed(0,40,0.25,1,180));
         add(makeSeed(0,40,0.25,1,90));
-        add(myHelicopter);
+        //add(myHelicopter);
+
+        add(pond);
     }
     private Node makeSeed(double tx, double ty, double sx, double sy, int degrees){
         Seed seed = new Seed();
@@ -318,7 +408,25 @@ class Pond extends GameObject {
 
 class Cloud extends GameObject
 {
+    public Cloud()
+    {
+        Text cloudPercent = new Text("100%");
+        cloudPercent.setScaleY(-1);
+        cloudPercent.setFill(Color.BLUE);
+        cloudPercent.setFont(Font.font(25));
 
+        Circle cloud = new Circle(50);
+        cloud.setCenterX(cloudPercent.getX() / 2);
+        cloud.setCenterY(cloudPercent.getY() / 2);
+        cloud.setFill(Color.LIGHTBLUE);
+
+        this.translate(-200, 200);
+        this.getTransforms().clear();
+        this.getTransforms().add(myTranslation);
+
+        add(cloud);
+        add(cloudPercent);
+    }
 }
 
 //This is the main class everything else runs from.
@@ -329,10 +437,10 @@ public class GameApp extends Application {
 
         //This method is basically like main(). It runs when the Application starts.
 
-        Pane root = new Pane();							//This Pane is the root node, that will be added to the Scene later.
+        Game root = new Game();							//This Pane is the root node, that will be added to the Scene later.
 
         //init(root);		//Why is it initialize twice? Just use one.
-        init(root);
+       // init(root);
 
         root.setScaleY(-1);
         root.setTranslateX(250);
@@ -341,25 +449,6 @@ public class GameApp extends Application {
         primaryStage.setScene(scene);
        // primaryStage.setTitle("AffineFlameFX!");
 
-
-
-        AnimationTimer timer = new AnimationTimer() {	//This runs each frame. Note that if you call update() on a GameObject, it will automatically call it on all children.
-            @Override
-            public void handle(long now) {
-                if(counter++ %2==0) {
-               //     pond.rotate(fo.getMyRotation() + 1);
-                    pond.update();
-                }
-            }
-        };
-
-        Helicopter helicopter;
-
-        Pond pond;
-
-        Cloud cloud;
-
-        Helipad helipad;
 
 
       /* scene.setOnKeyPressed(e ->{						//This runs when you press a key. There's several similar functions in the Scene documentation. https://docs.oracle.com/javase/8/javafx/api/javafx/scene/Scene.html
@@ -399,12 +488,9 @@ public class GameApp extends Application {
             }
         });
 
-
         primaryStage.show();
-        timer.start();
 
     }
-
     Helicopter helicopter;
 
     Pond pond;
@@ -417,8 +503,6 @@ public class GameApp extends Application {
         parent.getChildren().clear();
         pond = new Pond();
 
-        Line xAxis = new Line(-125,0,125,0);
-
         // GameText t = new GameText("More Text!");
         //t.translate(25,125);
         //parent.getChildren().add(t);
@@ -427,11 +511,5 @@ public class GameApp extends Application {
         c.setTranslateX(25);
         c.setTranslateY(125);
 
-        parent.getChildren().add(c);
-        parent.getChildren().add(xAxis);
-        parent.getChildren().add(pond);
-        parent.getChildren().add(cloud);
-        parent.getChildren().add(helipad);
-        parent.getChildren().add(helicopter);
     }
 }
