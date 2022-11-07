@@ -38,7 +38,7 @@ class Game extends Pane
     Helipad helipad;
 
     //    this.getChildren().add(c);
-      //  this.getChildren().add(xAxis);
+    //  this.getChildren().add(xAxis);
 
     public Game() {
 
@@ -52,7 +52,7 @@ class Game extends Pane
         this.getChildren().add(helipad);
         this.getChildren().add(helicopter);
 
-      // this.setBackground(Background.fill(Color.BLACK));
+        // this.setBackground(Background.fill(Color.BLACK));
 
         Line xAxis = new Line(-125,0,125,0);
 
@@ -154,8 +154,8 @@ class Helicopter extends GameObject{
 
         //  helipadCenterLocation = heliCenter;
         hRadius = size/2;
-     //   heliLocation = new Point2D(helipadCenterLocation.getX() - hRadius,
-       //         helipadCenterLocation.getY());
+        //   heliLocation = new Point2D(helipadCenterLocation.getX() - hRadius,
+        //         helipadCenterLocation.getY());
         // centerX = heliLocation.getX() + hRadius;
         //centerY = heliLocation.getY() + hRadius;
         angle = Math.toRadians(90);
@@ -196,10 +196,10 @@ class Helicopter extends GameObject{
             speedY+=0.02;
         }
     }
-   public void update() {
-    this.getTransforms().clear();
-    myTranslation.setY(myTranslation.getY() + speedY);
-    this.getTransforms().add(myTranslation);
+    public void update() {
+        this.getTransforms().clear();
+        myTranslation.setY(myTranslation.getY() + speedY);
+        this.getTransforms().add(myTranslation);
 
        /* if(case KP_DOWN)
         {
@@ -232,6 +232,8 @@ class Helicopter extends GameObject{
         angle += Math.toRadians(15);
         endHeadX = (int) (centerX + Math.cos(angle) * size*2);
         endHeadY = (int) (centerY - Math.sin(angle) * size*2);
+        rotate(15);
+
 
     }
 
@@ -240,7 +242,7 @@ class Helicopter extends GameObject{
         angle -= Math.toRadians(15);
         endHeadX = (int) (centerX + Math.cos(angle) * size*2);
         endHeadY = (int) (centerY - Math.sin(angle) * size*2);
-
+        rotate(15);
     }
 
     public void up() {
@@ -383,8 +385,8 @@ class Pond extends GameObject {
         this.getTransforms().clear();
         this.getTransforms().add(myTranslation);
 
-      //  Helicopter myHelicopter = new Helicopter();
-       // myHelicopter.setScaleX(2.5);
+        //  Helicopter myHelicopter = new Helicopter();
+        // myHelicopter.setScaleX(2.5);
         //myHelicopter.setScaleY(1.5);
 
         add(makeSeed(0,40,0.25,1,0));
@@ -394,6 +396,11 @@ class Pond extends GameObject {
         //add(myHelicopter);
 
         add(pond);
+
+        //   public void changePondArea()
+        // {
+
+        //   }
     }
     private Node makeSeed(double tx, double ty, double sx, double sy, int degrees){
         Seed seed = new Seed();
@@ -440,14 +447,22 @@ public class GameApp extends Application {
         Game root = new Game();							//This Pane is the root node, that will be added to the Scene later.
 
         //init(root);		//Why is it initialize twice? Just use one.
-       // init(root);
+        // init(root);
 
         root.setScaleY(-1);
         root.setTranslateX(250);
         root.setTranslateY(-70);
         Scene scene = new Scene(root, 500, 500);		//Creates a Scene, which is the main thing to worry about. Everything you make is added to the Scene, and it's where you put all the listeners.
         primaryStage.setScene(scene);
-       // primaryStage.setTitle("AffineFlameFX!");
+        // primaryStage.setTitle("AffineFlameFX!");
+
+        Helicopter helicopter = new Helicopter();
+
+        Pond pond;
+
+        Cloud cloud;
+
+        Helipad helipad;
 
 
 
@@ -466,42 +481,36 @@ public class GameApp extends Application {
 
         scene.setOnKeyPressed(e->{
             if (e.getCode() == KP_LEFT) {
-
+                helicopter.left();
             }
         });
 
         scene.setOnKeyPressed(e->{
             if (e.getCode() == KP_RIGHT) {
-
+                helicopter.right();
             }
         });
 
         scene.setOnKeyPressed(e->{
             if (e.getCode() == KP_UP) {
-
+                helicopter.up();
             }
         });
 
         scene.setOnKeyPressed(e->{
             if (e.getCode() == KP_DOWN) {
-
+                helicopter.down();
             }
         });
 
         primaryStage.show();
 
     }
-    Helicopter helicopter;
 
-    Pond pond;
-
-    Cloud cloud;
-
-    Helipad helipad;
 
     public void init(Pane parent){					//This is for initializing the game. Create any GameObjects and add them to the parent.
         parent.getChildren().clear();
-        pond = new Pond();
+        Pond pond = new Pond();
 
         // GameText t = new GameText("More Text!");
         //t.translate(25,125);
