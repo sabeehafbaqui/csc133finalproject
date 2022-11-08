@@ -1,105 +1,92 @@
-package com.example.project2;//import com.example.project2;
+package com.example.a1submission;
 import javafx.animation.AnimationTimer;
 import javafx.application.Application;
 import javafx.geometry.Point2D;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
-import javafx.scene.layout.Background;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.*;
+import javafx.scene.shape.Ellipse;
+import javafx.scene.shape.Line;
+import javafx.scene.shape.Rectangle;
+import javafx.scene.shape.Shape;
 import javafx.scene.text.Font;
-import javafx.scene.text.Text;
 import javafx.scene.transform.Rotate;
 import javafx.scene.transform.Scale;
 import javafx.scene.transform.Translate;
 import javafx.stage.Stage;
+import java.util.HashSet;
+import java.util.Random;
+import java.util.Set;
 
-import static javafx.scene.input.KeyCode.*;
-import static jdk.javadoc.internal.doclets.toolkit.util.DocPath.parent;
-
-//You need this for GameObject. You can also use it if you want to make non-GameObject Groups that you can add to them that update each frame. I wouldn't bother with that.
-interface Updatable{
+interface Updatable {
     void update();
 }
 
-//This code is great. I'd leave it untouched.
+class GameText extends GameObject {
 
-class Game extends Pane
-{
-    Helicopter helicopter;
+    private Label l;
+    Color color;
+    Boolean isP;
 
-    Pond pond;
-
-    Cloud cloud;
-
-    Helipad helipad;
-
-    //    this.getChildren().add(c);
-    //  this.getChildren().add(xAxis);
-
-    public Game() {
-
-        Helicopter helicopter = new Helicopter();
-        Pond pond = new Pond();
-        Cloud cloud = new Cloud();
-        Helipad helipad = new Helipad();
-
-        this.getChildren().add(pond);
-        this.getChildren().add(cloud);
-        this.getChildren().add(helipad);
-        this.getChildren().add(helicopter);
-
-        // this.setBackground(Background.fill(Color.BLACK));
-
-        Line xAxis = new Line(-125,0,125,0);
-
-        AnimationTimer timer = new AnimationTimer() {	//This runs each frame. Note that if you call update() on a GameObject, it will automatically call it on all children.
-            @Override
-            public void handle(long now) {
-                if(counter++ %2==0) {
-                    //     pond.rotate(fo.getMyRotation() + 1);
-                    pond.update();
-                    helicopter.update();
-                }
-            }
-
-
-        };
-
-        timer.start();
-
-
+    GameText(int percent, Boolean isPercentage) {
+        isP = isPercentage;
+        if (isP) {
+            l = new Label(percent + "%");
+        } else {
+            l = new Label("F:" + percent);
+        }
+        color = Color.BLUE;
+        l.setTextFill(color);
+        l.setScaleY(-1);
+        add(l);
     }
 
-    int counter=0;
-
-    public void movement() {
-        helicopter.movement();
+    GameText(String text){
+        isP = false;
+        l = new Label(text);
+        color = Color.BLUE;
+        l.setTextFill(color);
+        l.setScaleY(-1);
+       // l.setFont(new Font("Robot", 30));
+        add(l);
     }
 
+    public void changeColor(Color c) {
+        color = c;
+        l.setTextFill(color);
+    }
+
+    public void setText(int percent) {
+        if (isP) {
+            l.setText(percent + "%");
+        } else {
+            l.setText("F: " + percent);
+        }
+    }
+
+    @Override
+    Shape getShapeBounds() {
+        return null;
+    }
 }
 
-class GameObject extends Group implements Updatable{
+abstract class GameObject extends Group {
     protected Translate myTranslation;
     protected Rotate myRotation;
     protected Scale myScale;
+    Boolean ok;
 
-    public GameObject(){
+    public GameObject() {
         myTranslation = new Translate();
         myRotation = new Rotate();
         myScale = new Scale();
-        this.getTransforms().addAll(myTranslation,myRotation,myScale);
+        this.getTransforms().addAll(myTranslation, myRotation, myScale);
     }
-
-  /*  public static Point2D getPosition()
-    {
-       // return myTranslation.transform(0,0);
-        return myTranslation.getX();
-    }
-*/
 
     public void rotate(double degrees) {
         myRotation.setAngle(degrees);
@@ -117,14 +104,14 @@ class GameObject extends Group implements Updatable{
         myTranslation.setY(ty);
     }
 
-    public double getMyRotation(){
+    public double getMyRotation() {
         return myRotation.getAngle();
     }
 
-    public void update(){
-        for(Node n : getChildren()){
-            if(n instanceof Updatable)
-                ((Updatable)n).update();
+    public void update() {
+        for (Node n : getChildren()) {
+            if (n instanceof Updatable)
+                ((Updatable) n).update();
         }
     }
 
@@ -132,393 +119,295 @@ class GameObject extends Group implements Updatable{
         this.getChildren().add(node);
     }
 
+    abstract Shape getShapeBounds();
+
+    public boolean intersects(GameObject obj) {
+        return ok && obj.ok &&
+                !Shape.intersect(getShapeBounds(), obj.getShapeBounds()).getBoundsInLocal().isEmpty();
+    }
+
 }
 
-//This is a good example of how to make objects in your game.
-class Helicopter extends GameObject{
+class Pond extends GameObject implements Updatable {
 
-    private int size, hRadius, centerX, centerY, currSpeed, fuel, water;
-    private Point2D  heliLocation;
-    private int endHeadX, endHeadY, padSize;
-    private double angle;
-    private final int MAX_SPEED = 10;
-    private boolean riverCollision;
+    Ellipse ellipse;
+    GameText percent;
+    Random r;
+    int low = 800 / 3;
+    int lowWidth;
+    int high;
+    int highWidth;
+    int result;
+    int resultWidth;
+    double radius;
 
-    public Helicopter(){
-        super();
-
-        size = 30;
-        currSpeed = 0;
-        fuel = 0;
-        water = 0;
-
-        //  helipadCenterLocation = heliCenter;
-        hRadius = size/2;
-        //   heliLocation = new Point2D(helipadCenterLocation.getX() - hRadius,
-        //         helipadCenterLocation.getY());
-        // centerX = heliLocation.getX() + hRadius;
-        //centerY = heliLocation.getY() + hRadius;
-        angle = Math.toRadians(90);
-        endHeadX = centerX;
-        endHeadY = centerY - (size*2);
-        riverCollision = false;
-        //  padSize = helipadSize;
-
-        Ellipse helicopter = new Ellipse();	//It's creating an Ellipse and adding it to itself, so the ellipse will actually be drawn.
-        helicopter.setRadiusX(10);
-        helicopter.setRadiusY(10);
-        helicopter.setFill(Color.BEIGE);
-        helicopter.setTranslateX(1);
-        helicopter.setTranslateY(100);
-        add(helicopter);
-
-        Text fuel = new Text("F:25000");
-        fuel.setScaleY(-1);
-        fuel.setTranslateX(-25);
-        fuel.setTranslateY(-15);
-        fuel.setFill(Color.YELLOW);
-        fuel.setFont(Font.font(25));
-
-        Line line = new Line(0, 10, 0, 30);
-        line.setStroke(Color.YELLOW);
-        add(line);
-        add(fuel);
+    Pond() {
+        ok = true;
+        radius = Math.random() * 60;
+        ellipse = new Ellipse(radius, radius);
+        r = new Random();
+        high = 800 - (int) ellipse.getRadiusY();
+        lowWidth = (int) ellipse.getRadiusX();
+        highWidth = 400 - (int) ellipse.getRadiusX();
+        result = r.nextInt(high - low) + low;
+        resultWidth = r.nextInt(highWidth - lowWidth) + lowWidth;
+        ellipse.setFill(Color.LIGHTBLUE);
+        add(ellipse);
+        translate(resultWidth, result);
+        percent = new GameText((int) radius, true);
+        percent.changeColor(Color.WHITE);
+        add(percent);
+        percent.translate(-8, -5);
     }
 
-    double speedY = 5;
-    double maxSpeed;
-
-
-    public void movement()
-    {
-        if(speedY < maxSpeed)
-        {
-            speedY+=0.02;
-        }
-    }
     public void update() {
-        this.getTransforms().clear();
-        myTranslation.setY(myTranslation.getY() + speedY);
-        this.getTransforms().add(myTranslation);
-
-       /* if(case KP_DOWN)
-        {
-            Helicopter.down();
-        }
-
-        if(case KP_UP)
-        {
-            Helicopter.up();
-        }
-
-        if(case KP_LEFT)
-        {
-            Helicopter.left();
-        }
-
-        if(case KP_RIGHT)
-        {
-            Helicopter.right();
-        }
-
-        */
-
+        result = r.nextInt(high - low) + low;
+        resultWidth = r.nextInt(highWidth - lowWidth) + lowWidth;
+        translate(resultWidth, result);
     }
 
-
-
-    public void left() {
-
-        angle += Math.toRadians(15);
-        endHeadX = (int) (centerX + Math.cos(angle) * size*2);
-        endHeadY = (int) (centerY - Math.sin(angle) * size*2);
-        rotate(15);
-
-
-    }
-
-    public void right() {
-
-        angle -= Math.toRadians(15);
-        endHeadX = (int) (centerX + Math.cos(angle) * size*2);
-        endHeadY = (int) (centerY - Math.sin(angle) * size*2);
-        rotate(15);
-    }
-
-    public void up() {
-
-        angle -= Math.toRadians(15);
-        endHeadX = (int) (centerX + Math.cos(angle) * size*2);
-        endHeadY = (int) (centerY - Math.sin(angle) * size*2);
-
-    }
-
-    public void down() {
-
-        angle -= Math.toRadians(15);
-        endHeadX = (int) (centerX + Math.cos(angle) * size*2);
-        endHeadY = (int) (centerY - Math.sin(angle) * size*2);
-
-    }
-
-    public void startHelicopter(){
-
-    }
-
-}
-
-class Helipad extends GameObject
-{
-    public Helipad() {
-        Rectangle rectanglePad = new Rectangle(80, 80);
-        rectanglePad.setStroke(Color.GRAY);
-        rectanglePad.setTranslateX(10);
-        rectanglePad.setTranslateY(10);
-
-        Circle circlePad = new Circle(30);
-        circlePad.setCenterX(rectanglePad.getWidth() / 2);
-        circlePad.setCenterY(rectanglePad.getHeight() / 2);
-        circlePad.setStroke(Color.GRAY);
-
-        this.translate(-40, -40);
-        this.getTransforms().clear();
-        this.getTransforms().add(myTranslation);
-
-        add(rectanglePad);
-        add(circlePad);
-    }
-}
-
-class Seed extends GameObject
-{
-    public Seed()
-    {
-        Ellipse seed = new Ellipse();
-        seed.setRadiusX(1);
-        seed.setRadiusY(1);
-        seed.setFill(Color.BLUE);
-    }
-
- /*   Translate position;
-
-    private void checkCloudCollisions()
-    {
-        if(Point2D.distance(Cloud.getPosition(), Helicopter.getPosition()))
-        {
-
-        }
-    }
-
-    private void checkBirdCollision()
-    {
-
-    }
-
-  */
-
-}
-
-
-class Rotors extends GameObject {
-    public Rotors() {
-        Polygon polygon = new Polygon();
-        polygon.setFill(Color.BLUE);
-        polygon.getPoints().addAll(new Double[]{
-                0.0, 20.0,
-                -20.0, -20.0,
-                20.0, -20.0});
-        add(polygon);
-
-        GameText text = new GameText(".");
-        text.setTranslateY(100);
-        text.setTranslateX(-350);
-        text.setScaleX(4);
-        add(text);
-
-        this.getTransforms().clear();
-        this.getTransforms().addAll(myRotation,myTranslation,myScale);
-    }
-    int offset = 1;
-    public void update(){			//Here's one with an update() function. You use this if you want it to do something each frame.
-        myTranslation.setY(myTranslation.getY() + offset);
-        if(myTranslation.getY() > 40)
-            offset = -offset;
-        if(myTranslation.getY()<10)
-            offset = -offset;
-    }
-}
-
-//This looks good to keep if you want text in your game.
-class GameText extends GameObject {
-    Text text;
-
-    public GameText(String textString){
-        text = new Text(textString);
-        text.setScaleY(-1);
-        text.setFont(Font.font(25));
-        add(text);
-    }
-    public GameText(){
-        this("");
-    }
-    public void setText(String textString){
-        text.setText(textString);
-    }
-}
-
-class Pond extends GameObject {
-    public Pond() {
-
-        Circle pond = new Circle(30);
-        pond.setFill(Color.BLUE);
-        pond.setTranslateX(15);
-        pond.setTranslateY(25);
-
-        Text pondPercent = new Text("0%");
-        pondPercent.setScaleY(-1);
-        pondPercent.setTranslateX(100);
-        pondPercent.setTranslateY(100);
-        pondPercent.setFill(Color.BLACK);
-        pondPercent.setFont(Font.font(10));
-
-        this.translate(100, 100);
-        this.getTransforms().clear();
-        this.getTransforms().add(myTranslation);
-
-        //  Helicopter myHelicopter = new Helicopter();
-        // myHelicopter.setScaleX(2.5);
-        //myHelicopter.setScaleY(1.5);
-
-        add(makeSeed(0,40,0.25,1,0));
-        add(makeSeed(0,40,0.25,1,-90));
-        add(makeSeed(0,40,0.25,1,180));
-        add(makeSeed(0,40,0.25,1,90));
-        //add(myHelicopter);
-
-        add(pond);
-
-        //   public void changePondArea()
-        // {
-
-        //   }
-    }
-    private Node makeSeed(double tx, double ty, double sx, double sy, int degrees){
-        Seed seed = new Seed();
-        seed.rotate(degrees);
-        seed.translate(tx, ty);
-        seed.scale(sx, sy);
-        return seed;
-    }
-
-
-}
-
-class Cloud extends GameObject
-{
-    public Cloud()
-    {
-        Text cloudPercent = new Text("100%");
-        cloudPercent.setScaleY(-1);
-        cloudPercent.setFill(Color.BLUE);
-        cloudPercent.setFont(Font.font(25));
-
-        Circle cloud = new Circle(50);
-        cloud.setCenterX(cloudPercent.getX() / 2);
-        cloud.setCenterY(cloudPercent.getY() / 2);
-        cloud.setFill(Color.LIGHTBLUE);
-
-        this.translate(-200, 200);
-        this.getTransforms().clear();
-        this.getTransforms().add(myTranslation);
-
-        add(cloud);
-        add(cloudPercent);
-    }
-}
-
-//This is the main class everything else runs from.
-public class GameApp extends Application {
-    int counter=0;
     @Override
-    public void start(Stage primaryStage) throws Exception {
+    Shape getShapeBounds() {
+        return ellipse;
+    }
 
-        //This method is basically like main(). It runs when the Application starts.
+}
 
-        Game root = new Game();							//This Pane is the root node, that will be added to the Scene later.
+class Cloud extends GameObject implements Updatable {
 
-        //init(root);		//Why is it initialize twice? Just use one.
-        // init(root);
+    Ellipse ellipse;
+    GameText percent;
+    Random r;
+    int low = 800 / 3;
+    int lowWidth;
+    int high;
+    int highWidth;
+    int result;
+    int resultWidth;
+    int rgbColor = 255;
+    int saturation = 0;
+    Boolean isRaining = false;
 
-        root.setScaleY(-1);
-        root.setTranslateX(250);
-        root.setTranslateY(-70);
-        Scene scene = new Scene(root, 500, 500);		//Creates a Scene, which is the main thing to worry about. Everything you make is added to the Scene, and it's where you put all the listeners.
+    Cloud() {
+        ok = true;
+        ellipse = new Ellipse(60, 60);
+        r = new Random();
+        high = 800 - (int) ellipse.getRadiusY();
+        lowWidth = (int) ellipse.getRadiusX();
+        highWidth = 400 - (int) ellipse.getRadiusX();
+        result = r.nextInt(high - low) + low;
+        resultWidth = r.nextInt(highWidth - lowWidth) + lowWidth;
+        ellipse.setFill(Color.rgb(rgbColor, rgbColor, rgbColor));
+        add(ellipse);
+        translate(resultWidth, result);
+        percent = new GameText(saturation, true);
+        add(percent);
+        percent.translate(-8, -5);
+
+    }
+
+    public void update() {
+        if (saturation < 100) {
+            rgbColor -= 1;
+            ellipse.setFill(Color.rgb(rgbColor, rgbColor, rgbColor));
+            saturation++;
+            percent.setText(saturation);
+            if (saturation == 30) {
+                isRaining = true;
+            }
+        }
+    }
+
+    @Override
+    Shape getShapeBounds() {
+        return ellipse;
+    }
+
+}
+
+class Helipad extends GameObject {
+
+    Ellipse ellipse;
+    Rectangle rectangle;
+
+    Helipad() {
+        ok = true;
+        ellipse = new Ellipse(30, 30);
+        ellipse.setStroke(Color.GRAY);
+        rectangle = new Rectangle(80, 80);
+        rectangle.setStroke(Color.GRAY);
+        add(rectangle);
+        add(ellipse);
+        ellipse.setTranslateX(40);
+        ellipse.setTranslateY(40);
+        translate(150, 20);
+    }
+
+    @Override
+    Shape getShapeBounds() {
+        return ellipse;
+    }
+}
+
+class Helicopter extends GameObject implements Updatable {
+
+    Ellipse e;
+    Line l;
+    Color color = Color.YELLOW;
+    int fuel;
+    GameText fuelText;
+    int speed = 3;
+    // double angle =
+    int y = 60;
+    int x = 190;
+    Point2D location = new Point2D(x, y);
+    double rotation;
+
+    Helicopter() {
+        ok = true;
+        e = new Ellipse(10, 10);
+        l = new Line(0, 0, 0, 25);
+        fuel = 25000;
+        //rotation = Math.toRadians(getMyRotation());
+        fuelText = new GameText(fuel, false);
+        e.setFill(color);
+        l.setStroke(color);
+        add(e);
+        add(l);
+        add(fuelText);
+        fuelText.translate(-25, -30);
+        fuelText.changeColor(Color.YELLOW);
+        translate(location.getX(), location.getY());
+
+    }
+
+    @Override
+    Shape getShapeBounds() {
+        return e;
+    }
+
+    public void update() {
+        location = location.add(speed * Math.sin(-1*Math.PI*getMyRotation()/180), speed *
+                Math.cos(-1*Math.PI*getMyRotation()/180));
+        translate(location.getX(), location.getY());
+        if(fuel > 0){
+            fuel -= 10;
+            fuelText.setText(fuel);
+        }
+    }
+
+    public void handleKeyPress(KeyEvent evt) {
+        if (evt.getCode() == KeyCode.RIGHT) {
+            rotate(getMyRotation() - 15);
+        }
+
+        if (evt.getCode() == KeyCode.LEFT) {
+            rotate(getMyRotation() + 15);
+        }
+    }
+
+}
+
+class Game extends Pane {
+
+    static final int GAME_WIDTH = 400;
+    static final int GAME_HEIGHT = 800;
+
+    Set<KeyCode> keysDown = new HashSet<>();
+
+    int key(KeyCode k) {
+        return keysDown.contains(k) ? 1 : 0;
+    }
+
+    Helipad helipad;
+    Helicopter helicopter;
+    Cloud cloud;
+    Pond pond;
+    GameText gameOver;
+
+    public Game() {
+        helipad = new Helipad();
+        cloud = new Cloud();
+        helicopter = new Helicopter();
+        pond = new Pond();
+        if (pond.resultWidth > cloud.resultWidth && pond.resultWidth < cloud.resultWidth + cloud.ellipse.getRadiusX()) {
+            if (pond.result < cloud.result && pond.result > cloud.result + cloud.ellipse.getRadiusY()) {
+                pond.update();
+            }
+        }
+        getChildren().addAll(pond, cloud, helipad, helicopter);
+        setPrefSize(400, 800);
+
+    }
+
+    public void handleKeyPressed(KeyEvent e) {
+        keysDown.add(e.getCode());
+    }
+
+    public void handleKeyReleased(KeyEvent e) {
+        keysDown.remove(e.getCode());
+    }
+
+    public void checkGameStatus(){
+        if(helicopter.fuel == 0){
+            gameOver = new GameText("Game Over!");
+            gameOver.translate((GAME_WIDTH / 2) - 80, GAME_HEIGHT / 2 + 30);
+            gameOver.changeColor(Color.RED);
+            getChildren().removeAll(pond, cloud, helicopter, helipad);
+            getChildren().add(gameOver);
+        }
+    }
+
+}
+
+public class GameApp extends Application {
+
+    // private static final int GAME_WIDTH = 400;
+    // private static final int GAME_HEIGHT = 800;
+
+    @Override
+    public void start(Stage primaryStage) {
+        Group root = new Group();
+        Game game = new Game();
+        root.getChildren().add(game);
+        Scene scene = new Scene(root, game.GAME_WIDTH, game.GAME_HEIGHT, Color.BLACK);
+        scene.setOnKeyPressed(e -> {
+            game.handleKeyPressed(e);
+            game.helicopter.handleKeyPress(e);
+            if (game.helicopter.intersects(game.cloud)) {
+                if (game.key(KeyCode.SPACE) == 1) {
+                    game.cloud.update();
+                }
+            }
+        });
+
+        scene.setOnKeyReleased(e -> {
+            game.handleKeyReleased(e);
+        });
+
+        primaryStage.setTitle("GAME_WINDOW_TITLE");
         primaryStage.setScene(scene);
-        // primaryStage.setTitle("AffineFlameFX!");
-
-        Helicopter helicopter = new Helicopter();
-
-        Pond pond;
-
-        Cloud cloud;
-
-        Helipad helipad;
-
-
-
-      /* scene.setOnKeyPressed(e ->{						//This runs when you press a key. There's several similar functions in the Scene documentation. https://docs.oracle.com/javase/8/javafx/api/javafx/scene/Scene.html
-            switch(e.getCode()){
-                case    LEFT: fo.left();   break;
-                case    RIGHT:fo.right();  break;
-                case    UP:fo.up();
-                case DOWN:fo.down();
-                case    I:fo.startHelicopter();          break;
-                default:
-                    ;
-            }
-        });
-        */
-
-        scene.setOnKeyPressed(e->{
-            if (e.getCode() == KP_LEFT) {
-                helicopter.left();
-            }
-        });
-
-        scene.setOnKeyPressed(e->{
-            if (e.getCode() == KP_RIGHT) {
-                helicopter.right();
-            }
-        });
-
-        scene.setOnKeyPressed(e->{
-            if (e.getCode() == KP_UP) {
-                helicopter.up();
-            }
-        });
-
-        scene.setOnKeyPressed(e->{
-            if (e.getCode() == KP_DOWN) {
-                helicopter.down();
-            }
-        });
-
+        game.setScaleY(-1);
+        primaryStage.setResizable(false);
         primaryStage.show();
 
-    }
+        AnimationTimer gameLoop = new AnimationTimer() {
+            @Override
+            public void handle(long now) {
+                if (game.key(KeyCode.UP) == 1) {
+                    game.helicopter.update();
+                }
 
+                game.checkGameStatus();
+            }
+        };
 
-    public void init(Pane parent){					//This is for initializing the game. Create any GameObjects and add them to the parent.
-        parent.getChildren().clear();
-        Pond pond = new Pond();
-
-        // GameText t = new GameText("More Text!");
-        //t.translate(25,125);
-        //parent.getChildren().add(t);
-
-        Circle c = new Circle(2,Color.RED);
-        c.setTranslateX(25);
-        c.setTranslateY(125);
+        gameLoop.start();
 
     }
+
+    public static void main(String[] args) {
+        Application.launch();
+    }
+
 }
